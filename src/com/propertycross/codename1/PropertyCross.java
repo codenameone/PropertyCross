@@ -1,13 +1,11 @@
 package com.propertycross.codename1;
 
-
 import com.codename1.components.InfiniteProgress;
 import com.codename1.components.InfiniteScrollAdapter;
 import com.codename1.components.MultiButton;
 import com.codename1.components.SpanLabel;
 import com.codename1.io.ConnectionRequest;
 import com.codename1.io.JSONParser;
-import com.codename1.io.Log;
 import com.codename1.io.NetworkManager;
 import com.codename1.io.Storage;
 import com.codename1.location.Location;
@@ -24,6 +22,7 @@ import com.codename1.ui.FontImage;
 import com.codename1.ui.Form;
 import com.codename1.ui.Image;
 import com.codename1.ui.Label;
+import com.codename1.ui.TextArea;
 import com.codename1.ui.TextField;
 import com.codename1.ui.Toolbar;
 import com.codename1.ui.URLImage;
@@ -148,27 +147,17 @@ public class PropertyCross {
      */
     private void showMainForm(boolean back, String errorMessage, List<Map<String, Object>> listings) {
         // we initialize the main form and add the favorites command so we can navigate there
-        Form hi = new Form("PropertyCross");
+        // we use border layout so the list will take up all the available space
+        Form hi = new Form("PropertyCross", new BorderLayout());
         hi.getToolbar().addCommandToRightBar("Favs", null, e -> showFavs());
         hi.getToolbar().setTitleCentered(true);
         
-        // we use border layout so the list will take up all the available space
-        hi.setLayout(new BorderLayout());
-        
-        // we place the other elements in the box Y layout so they are one on top of the other
-        Container boxY = new Container(new BoxLayout(BoxLayout.Y_AXIS));
-        boxY.addComponent(new SpanLabel("Use the form below to search for houses to buy. You can search by place-name, postcode, or click 'My Location', to search in your current location!"));
-        final TextField search = new TextField();
+        final TextField search = new TextField("", "Search", 20, TextArea.ANY);
         
         // the component group gives the buttons and text field that rounded corner iOS look when running on iOS. It does nothing on other platforms by default
-        ComponentGroup gp = new ComponentGroup();
-        boxY.addComponent(gp);
-        search.setHint("Search");
-        gp.addComponent(search);
         Button go = new Button("Go");
         Button myLocation = new Button("My Location");
-        gp.addComponent(go);
-        gp.addComponent(myLocation);
+        ComponentGroup gp = ComponentGroup.enclose(search, go, myLocation);
         
         // this allows the "Done" button in the virtual keyboard to perform the search and also binds to the Go button.
         ActionListener plainTextSearch = evt -> {
@@ -199,21 +188,25 @@ public class PropertyCross {
             performSearch(null, l);
         });
         
-        hi.addComponent(BorderLayout.NORTH, boxY);
+        // we place the other elements in the box Y layout so they are one on top of the other
+        Container boxY = BoxLayout.encloseY(
+            new SpanLabel("Use the form below to search for houses to buy. You can search by place-name, postcode, or click 'My Location', to search in your current location!"),
+                gp);
+        hi.add(BorderLayout.NORTH, boxY);
         
         // if there is a pending error message we show that since its the most important
         if(errorMessage != null) {
-                hi.addComponent(BorderLayout.CENTER, new SpanLabel(errorMessage));
+                hi.add(BorderLayout.CENTER, new SpanLabel(errorMessage));
         } else {
             // if there is a listing to pick from we will show that
             if(listings != null) {
                 // we create a list of the results returned from the server and map the result list to the JSON name (long_title)
-                boxY.addComponent(new Label("Please select a location below"));
+                boxY.add("Please select a location below");
                 final MultiList actualLocation = new MultiList();
                 actualLocation.getSelectedButton().setNameLine1("long_title");
                 actualLocation.getUnselectedButton().setNameLine1("long_title");
                 actualLocation.setModel(new DefaultListModel(listings));
-                hi.addComponent(BorderLayout.CENTER, actualLocation);
+                hi.add(BorderLayout.CENTER, actualLocation);
                 actualLocation.addActionListener(evt -> {
                     // when the user selects and entry from the list we navigate to the actual search result entry
                     Map<String, Object> sel = (Map<String, Object>)actualLocation.getSelectedItem();
@@ -224,18 +217,18 @@ public class PropertyCross {
                 if(recentSearchesList.size() > 0) {
                     // recent searches are already stored in a way that is very friendly to list model so we can just show it
                     // we switch the list to horizontal layout mode so it will display more closely to the design
-                    boxY.addComponent(new Label("Recent Searches"));
+                    boxY.add(new Label("Recent Searches"));
                     final MultiList recentSearches = new MultiList();
                     recentSearches.getUnselectedButton().setHorizontalLayout(true);
                     recentSearches.getSelectedButton().setHorizontalLayout(true);
                     recentSearches.setModel(new DefaultListModel(recentSearchesList));
-                    hi.addComponent(BorderLayout.CENTER, recentSearches);
+                    hi.add(BorderLayout.CENTER, recentSearches);
                     recentSearches.addActionListener(evt -> {
                         Map<String, String> selection = (Map<String, String>)recentSearches.getSelectedItem();
                         performSearch((String)selection.get("Line1"), null);
                     });
                 } else {
-                    boxY.addComponent(new Label("There are no recent searches"));
+                    boxY.add(new Label("There are no recent searches"));
                 }
             }
         }
@@ -278,11 +271,8 @@ public class PropertyCross {
      */
     void performSearch(final String text, final Location l) {
         // the form is initilized when there are no results so the title is different from the design, as results come in we set the title correctly
-        final Form searchResults = new Form("Searching...");
+        final Form searchResults = new Form("Searching...", new BoxLayout(BoxLayout.Y_AXIS));
         addBackToHome(searchResults);
-        
-        // results are laid our vertically as buttons
-        searchResults.setLayout(new BoxLayout(BoxLayout.Y_AXIS));
         
         // Codename One includes an ability to "infinitely scroll" which is more convenient than the "more" button 
         // approach. This works thru a callback to the runnable that fetches the additional results and we scroll
@@ -388,7 +378,7 @@ public class PropertyCross {
      * @param currentListing the listing details
      */
     void showPropertyDetails(final Form previousForm, final Map<String, Object> currentListing) {
-        final Form propertyDetails = new Form("Property Details");
+        final Form propertyDetails = new Form("Property Details", new BoxLayout(BoxLayout.Y_AXIS));
         
         // we check whether the current entry is marked as favorite via its unique ID from the server
         // if it is a favorite we use the selected icon for the command (a filled star) otherwise we use the 
@@ -421,27 +411,15 @@ public class PropertyCross {
         propertyDetails.getToolbar().setBackCommand("Results", BACK_POLICY, e -> previousForm.showBack());
         propertyDetails.getToolbar().setTitleCentered(true);
 
-        propertyDetails.setLayout(new BoxLayout(BoxLayout.Y_AXIS));
         String price_formatted = (String)currentListing.get("price_formatted");
         String title = (String)currentListing.get("title");
         String img_url = (String)currentListing.get("img_url");
-        
-        // we set the title and second title to have larger presence in the UI so they will be more attractive
-        Label l = new Label(price_formatted);
-        l.setUIID("LargeTitle");
-        propertyDetails.addComponent(l);
-        Label lt = new Label(title);
-        lt.setUIID("SecondaryTitle");
-        propertyDetails.addComponent(lt);
-        
+                
         // we create a placeholder image for the wide image dynamically so it will be just the right size for the screen
         if(largePlaceholder == null) {
             Image tmp = Image.createImage(Display.getInstance().getDisplayWidth(), Display.getInstance().getDisplayWidth() / 4 * 3, 0);
             largePlaceholder = EncodedImage.createFromImage(tmp, false);
         }
-        
-        // the full width version of the image is downloaded dynamically into place and cached with the URLImage class
-        propertyDetails.addComponent(new Label(URLImage.createToStorage(largePlaceholder, "L" + guid, img_url, URLImage.RESIZE_SCALE_TO_FILL)));
         
         Object bathroom_number = currentListing.get("bathroom_number");
         Object bedroom_number = currentListing.get("bedroom_number");
@@ -456,10 +434,15 @@ public class PropertyCross {
                 struct = ((Double)bathroom_number).intValue() + " bathroom";
             }
         }
-        propertyDetails.addComponent(new Label(struct));
         String summary = (String)currentListing.get("summary");
-        propertyDetails.addComponent(new SpanLabel(summary));
         
+        // we set the title and second title to have larger presence in the UI so they will be more attractive
+        // the full width version of the image is downloaded dynamically into place and cached with the URLImage class
+        propertyDetails.add(new Label(price_formatted, "LargeTitle")).
+                add(new Label(title, "SecondaryTitle")).
+                add(new Label(URLImage.createToStorage(largePlaceholder, "L" + guid, img_url, URLImage.RESIZE_SCALE_TO_FILL))).
+                add(struct).
+                add(new SpanLabel(summary));
         
         propertyDetails.show();
     }
@@ -567,11 +550,10 @@ public class PropertyCross {
      * Shows the favorites screen 
      */
     void showFavs() {
-        final Form favsForm = new Form("Favourites");
+        final Form favsForm = new Form("Favourites", new BoxLayout(BoxLayout.Y_AXIS));
         addBackToHome(favsForm);
-        favsForm.setLayout(new BoxLayout(BoxLayout.Y_AXIS));
         if(favoritesList.size() == 0) {
-            favsForm.addComponent(new SpanLabel("You have not added any properties to your favourites"));
+            favsForm.add(new SpanLabel("You have not added any properties to your favourites"));
         } else {
             // this is really trivial we just take the favorites and show them as a set of buttons
             for(Map<String, Object> c : favoritesList) {
@@ -585,7 +567,7 @@ public class PropertyCross {
                 mb.setTextLine1(price_formatted);
                 mb.setTextLine2(summary);
                 mb.addActionListener(evt -> showPropertyDetails(favsForm, currentListing));
-                favsForm.addComponent(mb);
+                favsForm.add(mb);
             }
         }
         favsForm.show();
