@@ -14,4 +14,5 @@ script:
  - unzip updatedLibs.zip -d lib
  - mv lib/JavaSE.jar .
  - wget http://www.codenameone.com/files/CodeNameOneBuildClient.jar
+ - cat build.xml | sed "s~<codeNameOne~<codeNameOne userName=\"$cn1user\" password=\"$cn1password\"~" > build.xml
  - ant -Dautomated=true -Dcn1user=$cn1user -Dcn1password=$cn1password build-for-javascript jar
