@@ -14,5 +14,6 @@ script:
  - unzip updatedLibs.zip -d lib
  - mv lib/JavaSE.jar .
  - wget http://www.codenameone.com/files/CodeNameOneBuildClient.jar
- - ant jar
+ - ant -Dautomated=true jar build-for-android-device
+ - ant -Dautomated=true jar build-for-javascript
  
