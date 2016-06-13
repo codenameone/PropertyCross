@@ -14,4 +14,4 @@ script:
  - unzip updatedLibs.zip -d lib
  - mv lib/JavaSE.jar .
  - wget http://www.codenameone.com/files/CodeNameOneBuildClient.jar
- - ant -Dautomated=true jar -Dcn1user=$cn1user -Dcn1password=$cn1password build-for-javascript
+ - ant -Dautomated=true -Dcn1user=$cn1user -Dcn1password=$cn1password build-for-javascript jar
