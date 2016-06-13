@@ -1,6 +1,5 @@
 language: java
 
-# Set JDK needed for JavaTestApplication
 jdk:
   - oraclejdk8    
   
